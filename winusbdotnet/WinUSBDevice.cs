@@ -31,6 +31,8 @@ using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reactive.Subjects;
+using System.Reactive.Linq;
 
 namespace winusbdotnet {
 
@@ -218,7 +220,7 @@ namespace winusbdotnet {
         public void StopBufferedRead (byte pipeId) {
             throw new NotImplementedException ();
         }
-
+        [Obsolete]
         public void BufferedReadNotifyPipe (byte pipeId, NewDataCallback callback) {
             if (!bufferedPipes.ContainsKey (pipeId)) {
                 throw new Exception ("Pipe not enabled for buffered reads!");
@@ -569,8 +571,8 @@ namespace winusbdotnet {
             ReceiveTick = new ManualResetEvent (false);
             PipeThread = new Thread (ThreadFunc);
             PipeThread.IsBackground = true;
-            WorkerThread = new Thread (WorkerThreadFunc);
-            WorkerThread.IsBackground = true;
+            //WorkerThread = new Thread (WorkerThreadFunc);
+            //WorkerThread.IsBackground = true;
             ThreadNewData = new AutoResetEvent (false);
 
 
@@ -585,7 +587,7 @@ namespace winusbdotnet {
             //dev.SetPipePolicy(pipeId, WinUsbPipePolicy.RAW_IO, 1);
 
             PipeThread.Start ();
-            WorkerThread.Start ();
+            //WorkerThread.Start ();
         }
 
         public long TotalReceivedBytes { get { return TotalReceived; } }
@@ -843,13 +845,16 @@ namespace winusbdotnet {
                                 QueuedLength += recvBytes;
                                 TotalReceived += recvBytes;
                             }
-                            ThreadNewData.Set ();
+                            BufferredReadPipeBytesReceivedSub.OnNext (recvBytes);
+                            //ThreadNewData.Set ();
+                            //NewDataEvent?.Invoke ();
                             //ThreadPool.QueueUserWorkItem(RaiseNewData);
 
                         }
                     }
                 } catch (Exception ex) {
                     System.Diagnostics.Debug.Print ("Should not happen: Exception in background thread. {0}", ex.ToString ());
+                    BufferredReadPipeExceptionSub.OnNext (ex);//could use BufferredReadPipeExceptionSub.OnError, but that would kill the observable
                     Thread.Sleep (15);
                 }
 
@@ -858,11 +863,16 @@ namespace winusbdotnet {
             }
             Stopped = true;
         }
-
+        [Obsolete]
         public event WinUSBDevice.NewDataCallback NewDataEvent;
 
+        readonly Subject<Exception> BufferredReadPipeExceptionSub = new Subject<Exception> ();
+        public IObservable<Exception> HardwareErrorOccured { get { return this.BufferredReadPipeExceptionSub.AsObservable (); } }
 
+        readonly Subject<int> BufferredReadPipeBytesReceivedSub = new Subject<int> ();
+        public IObservable<int> BufferredReadPipeBytesReceived { get { return this.BufferredReadPipeBytesReceivedSub.AsObservable (); } }
 
+        [Obsolete]
         void WorkerThreadFunc () {
             // Attempt to set processor affinity to everything but the first two. (todo: come up with something smarter.)
 
@@ -896,7 +906,7 @@ namespace winusbdotnet {
             }
             Thread.EndThreadAffinity ();
         }
-
+        [Obsolete]
         void RaiseNewData (object context) {
             WinUSBDevice.NewDataCallback cb = NewDataEvent;
             if (cb != null) {
