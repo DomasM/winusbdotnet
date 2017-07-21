@@ -752,8 +752,40 @@ namespace winusbdotnet {
         [DllImport ("winusb.dll", SetLastError = true)]
         public extern static bool WinUsb_GetAdjustedFrameNumber (ref UInt32 currentFrameNumber, Int64 timestamp);
 
+        [DllImport ("winusb.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool WinUsb_QueryPipe (IntPtr InterfaceHandle, byte alternateInterfaceNumber, byte pipeIndex, ref WINUSB_PIPE_INFORMATION pipeInformation);
 
+        [DllImport ("winusb.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool WinUsb_QueryInterfaceSettings (IntPtr InterfaceHandle, byte alternateInterfaceNumber, ref USB_INTERFACE_DESCRIPTOR usbAltInterfaceDescriptor);
 
+    }
+
+    [StructLayout (LayoutKind.Sequential)]
+    public struct USB_INTERFACE_DESCRIPTOR {
+        public byte bLength;
+        public byte bDescriptorType;
+        public byte bInterfaceNumber;
+        public byte bAlternateSetting;
+        public byte bNumEndpoints;
+        public byte bInterfaceClass;
+        public byte bInterfaceSubClass;
+        public byte bInterfaceProtocol;
+        public byte iInterface;
+    }
+
+    [StructLayout (LayoutKind.Sequential)]
+    public struct WINUSB_PIPE_INFORMATION {
+        public USBD_PIPE_TYPE PipeType;
+        public byte PipeId;
+        public ushort MaximumPacketSize;
+        public byte Interval;
+    }
+
+    public enum USBD_PIPE_TYPE : uint {
+        Control = 0,
+        Isochronous = 1,
+        Bulk = 2,
+        Interrupt = 3
     }
 
     public struct NativeOverlapped {

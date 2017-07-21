@@ -143,6 +143,21 @@ namespace winusbdotnet {
             return ControlTransferIn (ControlTypeStandard | ControlRecipientDevice, (byte)UsbStandardRequestCode.GetDescriptor, value, 0, length);
         }
 
+        public byte GetPipeId (byte pipeIndex) {
+            USB_INTERFACE_DESCRIPTOR intefaceDescription = new USB_INTERFACE_DESCRIPTOR ();
+            WINUSB_PIPE_INFORMATION pipeInfo = new WINUSB_PIPE_INFORMATION ();
+            if (NativeMethods.WinUsb_QueryInterfaceSettings (WinusbHandle, 0, ref intefaceDescription)) {
+                if (NativeMethods.WinUsb_QueryPipe (WinusbHandle, 0, pipeIndex, ref pipeInfo)) {
+                    var pipeId = pipeInfo.PipeId;
+                    return pipeId;
+                } else {
+                    throw new Exception ("WinUsb_QueryPipe failed. " + (new Win32Exception ()).ToString ());
+                }
+            } else {
+                throw new Exception ("WinUsb_QueryInterfaceSettings failed. " + (new Win32Exception ()).ToString ());
+            }
+        }
+
         public void Dispose () {
             Stopping = true;
 
