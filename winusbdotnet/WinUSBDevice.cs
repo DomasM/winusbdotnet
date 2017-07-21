@@ -201,6 +201,17 @@ namespace winusbdotnet {
             bufferedPipes[pipeId].NewDataEvent += callback;
         }
 
+        public IObservable<int> BufferredReadPipeBytesReceived (byte pipeId) {
+            if (!bufferedPipes.ContainsKey (pipeId)) throw new Exception ("Pipe not enabled for buffered reads!");
+            return bufferedPipes[pipeId].PipeReadBytesReceived;
+        }
+
+        public IObservable<Exception> BufferredReadPipeExceptionOccured (byte pipeId) {
+            if (!bufferedPipes.ContainsKey (pipeId)) throw new Exception ("Pipe not enabled for buffered reads!");
+            return bufferedPipes[pipeId].PipeReadException;
+        }
+
+
         BufferedPipeThread GetInterface (byte pipeId, bool packetInterface) {
             if (!bufferedPipes.ContainsKey (pipeId)) {
                 throw new Exception ("Pipe not enabled for buffered reads!");
