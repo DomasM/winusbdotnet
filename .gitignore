@@ -138,6 +138,8 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 
+packages/
+
 # =========================
 # Windows detritus
 # =========================
