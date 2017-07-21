@@ -15,7 +15,7 @@ namespace winusbdotnet {
         public bool InterfaceBound; // Has the interface been bound?
         public bool PacketInterface; // Are we using the packet reader interface?
 
-
+        readonly object Lock0 = new object ();
         Thread PipeThread;
         Thread WorkerThread;
         AutoResetEvent ThreadNewData;
@@ -87,7 +87,7 @@ namespace winusbdotnet {
         // Packet Reader members
         //
 
-        public int QueuedPackets { get { lock (this) { return ReceivedBuffers.Count; } } }
+        public int QueuedPackets { get { lock (Lock0) { return ReceivedBuffers.Count; } } }
 
         public int NextPacketLength {
             get {
@@ -117,7 +117,7 @@ namespace winusbdotnet {
         }
 
         void UpdateReceivedData () {
-            lock (this) {
+            lock (Lock0) {
                 while (NextPacketLength > 0) {
                     byte[] buffer = new byte[NextPacketLength];
                     ReadPacket (buffer, 0);
@@ -140,7 +140,7 @@ namespace winusbdotnet {
                 count = queue;
 
             byte[] output = new byte[count];
-            lock (this) {
+            lock (Lock0) {
                 UpdateReceivedData ();
                 CopyReceiveBytes (output, 0, count);
             }
@@ -154,7 +154,7 @@ namespace winusbdotnet {
                 count = queue;
 
             byte[] output = new byte[count];
-            lock (this) {
+            lock (Lock0) {
                 UpdateReceivedData ();
                 CopyPeekBytes (output, 0, count);
             }
@@ -164,7 +164,7 @@ namespace winusbdotnet {
         public byte[] ReceiveExactBytes (int count) {
             byte[] output = new byte[count];
             if (QueuedDataLength >= count) {
-                lock (this) {
+                lock (Lock0) {
                     UpdateReceivedData ();
                     CopyReceiveBytes (output, 0, count);
                 }
@@ -174,7 +174,7 @@ namespace winusbdotnet {
             int haveBytes = 0;
             while (haveBytes < count) {
                 ReceiveTick.Reset ();
-                lock (this) {
+                lock (Lock0) {
                     UpdateReceivedData ();
                     int thisBytes = QueuedLength;
 
@@ -199,7 +199,7 @@ namespace winusbdotnet {
         }
 
         public void SkipBytes (int count) {
-            lock (this) {
+            lock (Lock0) {
                 UpdateReceivedData ();
                 int queue = QueuedLength;
                 if (queue < count)
@@ -332,7 +332,7 @@ namespace winusbdotnet {
                     finally {
                         // Unless we're exiting, ensure we always indicate the data, even if some operation failed.
                         if (!Device.Stopping && recvBytes > 0) {
-                            lock (this) {
+                            lock (Lock0) {
                                 QueuedLength += recvBytes;
                                 TotalReceived += recvBytes;
                             }
