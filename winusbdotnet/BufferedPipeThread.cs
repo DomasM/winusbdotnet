@@ -16,28 +16,25 @@ namespace winusbdotnet {
         public bool PacketInterface; // Are we using the packet reader interface?
 
         readonly object Lock0 = new object ();
-        Thread PipeThread;
-        [Obsolete]
-        Thread WorkerThread;
-        AutoResetEvent ThreadNewData;
-        WinUSBDevice Device;
-        byte DevicePipeId;
+        Thread PipeThread { get; }
+        AutoResetEvent ThreadNewData = new AutoResetEvent (false);
+        WinUSBDevice Device { get; }
+        byte DevicePipeId { get; }
 
         private long TotalReceived;
 
         private int QueuedLength;
-        private Queue<byte[]> ReceivedData;
+        private Queue<byte[]> ReceivedData { get; } = new Queue<byte[]> ();
         private int SkipFirstBytes;
         public bool Stopped = false;
 
-
         ManualResetEvent ReceiveTick;
 
-        QueuedBuffer[] BufferList;
-        Queue<QueuedBuffer> PendingBuffers;
-        Queue<QueuedBuffer> ReceivedBuffers;
-        Queue<QueuedBuffer> RequeuePending;
-        object BufferLock;
+        QueuedBuffer[] BufferList { get; }
+        Queue<QueuedBuffer> PendingBuffers { get; }
+        Queue<QueuedBuffer> ReceivedBuffers { get; }
+        Queue<QueuedBuffer> RequeuePending { get; }
+        readonly object BufferLock = new object ();
 
 
         public BufferedPipeThread (WinUSBDevice dev, byte pipeId, int bufferCount, int bufferSize) {
@@ -47,7 +44,6 @@ namespace winusbdotnet {
 
             if (bufferSize > maxTransferSize) { bufferSize = maxTransferSize; }
 
-            BufferLock = new object ();
             PendingBuffers = new Queue<QueuedBuffer> (bufferCount);
             ReceivedBuffers = new Queue<QueuedBuffer> (bufferCount);
             RequeuePending = new Queue<QueuedBuffer> (bufferCount);
@@ -59,11 +55,9 @@ namespace winusbdotnet {
             Device = dev;
             DevicePipeId = pipeId;
             QueuedLength = 0;
-            ReceivedData = new Queue<byte[]> ();
             ReceiveTick = new ManualResetEvent (false);
             PipeThread = new Thread (ThreadFunc);
             PipeThread.IsBackground = true;
-            ThreadNewData = new AutoResetEvent (false);
 
 
             // Start reading on all the buffers.
