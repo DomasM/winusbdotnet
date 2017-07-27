@@ -133,26 +133,49 @@ namespace winusbdotnet {
             }
         }
 
-        public void Dispose () {
-            Stopping = true;
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
 
-            // Close handles which will cause background theads to stop working & exit.
-            if (WinusbHandle != IntPtr.Zero) {
-                NativeMethods.WinUsb_Free (WinusbHandle);
-                WinusbHandle = IntPtr.Zero;
+        protected virtual void Dispose (bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
+                    // TODO: dispose managed state (managed objects).
+                }
+
+                Stopping = true;
+                
+                // Close handles which will cause background theads to stop working & exit.
+                if (WinusbHandle != IntPtr.Zero) {
+                    NativeMethods.WinUsb_Free (WinusbHandle);
+                    WinusbHandle = IntPtr.Zero;
+                }
+                deviceHandle.Close ();
+
+                // Wait for pipe threads to quit
+                foreach (BufferedPipeThread th in bufferedPipes.Values) {
+                    while (!th.Stopped) Thread.Sleep (5);
+                }
+
+                disposedValue = true;
             }
-            deviceHandle.Close ();
-
-            // Wait for pipe threads to quit
-            foreach (BufferedPipeThread th in bufferedPipes.Values) {
-                while (!th.Stopped) Thread.Sleep (5);
-            }
-
-            GC.SuppressFinalize (this);
         }
 
-        public void Close () {
-            Dispose ();
+        ~WinUSBDevice () {
+            Dispose (false);
+        }
+
+        public void Dispose () {
+            Dispose (true);
+            GC.SuppressFinalize (this);
+        }
+        #endregion
+
+
+
+        public void ResetPipe (byte pipeId) {
+            if (!NativeMethods.WinUsb_ResetPipe (WinusbHandle, pipeId)) {
+                throw new Exception ("ResetPipe failed. " + (new Win32Exception ()).ToString ());
+            }
         }
 
         public void FlushPipe (byte pipeId) {
@@ -405,6 +428,8 @@ namespace winusbdotnet {
         public const byte ControlRecipientInterface = 1;
         public const byte ControlRecipientEndpoint = 2;
         public const byte ControlRecipientOther = 3;
+
+
 
 
     }

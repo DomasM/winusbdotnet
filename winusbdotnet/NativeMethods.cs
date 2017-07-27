@@ -756,6 +756,10 @@ namespace winusbdotnet {
         [DllImport ("winusb.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool WinUsb_QueryInterfaceSettings (IntPtr InterfaceHandle, byte alternateInterfaceNumber, ref USB_INTERFACE_DESCRIPTOR usbAltInterfaceDescriptor);
 
+
+        [DllImport ("winusb.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool WinUsb_ResetPipe (IntPtr InterfaceHandle, byte pipeId);
+
     }
 
     [StructLayout (LayoutKind.Sequential)]
