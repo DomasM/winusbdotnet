@@ -326,14 +326,13 @@ namespace winusbdotnet {
                                 TotalReceived += recvBytes;
                             }
                             PipeReadBytesReceivedSub.OnNext (recvBytes);
-                            //ThreadPool.QueueUserWorkItem(RaiseNewData);
-
                         }
                     }
                 } catch (Exception ex) {
-                    System.Diagnostics.Debug.Print ("Exception in background thread. {0}", ex.ToString ());
-                    PipeReadExceptionSub.OnNext (ex);//could use BufferredReadPipeExceptionSub.OnError, but that would kill the observable
-                    Thread.Sleep (15);
+                    if (Device.Stopping == false) {
+                        PipeReadExceptionSub.OnNext (ex);//could use BufferredReadPipeExceptionSub.OnError, but that would kill the observable
+                        Thread.Sleep (15);
+                    }
                 }
 
                 ReceiveTick.Set ();
@@ -341,8 +340,6 @@ namespace winusbdotnet {
             }
             Stopped = true;
         }
-        [Obsolete]
-        public event WinUSBDevice.NewDataCallback NewDataEvent;
 
         readonly Subject<Exception> PipeReadExceptionSub = new Subject<Exception> ();
         public IObservable<Exception> PipeReadException { get { return this.PipeReadExceptionSub.AsObservable (); } }
@@ -350,51 +347,7 @@ namespace winusbdotnet {
         readonly Subject<int> PipeReadBytesReceivedSub = new Subject<int> ();
         public IObservable<int> PipeReadBytesReceived { get { return this.PipeReadBytesReceivedSub.AsObservable (); } }
 
-        [Obsolete]
-        void WorkerThreadFunc () {
-            // Attempt to set processor affinity to everything but the first two. (todo: come up with something smarter.)
-
-            Thread.BeginThreadAffinity ();
-            if (Environment.ProcessorCount > 2) {
-#pragma warning disable 618
-                // warning CS0618: 'System.AppDomain.GetCurrentThreadId()' is obsolete: 'AppDomain.GetCurrentThreadId has been deprecated because it does not provide a stable Id when managed threads are running on fibers (aka lightweight threads). To get a stable identifier for a managed thread, use the ManagedThreadId property on Thread.  http://go.microsoft.com/fwlink/?linkid=14202'
-                int threadId = AppDomain.GetCurrentThreadId ();
-#pragma warning restore 618
-                int cpuCount = Environment.ProcessorCount;
-                long cpuMask = -4;
-                if (cpuCount == 63) {
-                    cpuMask = 0x7FFFFFFFFFFFFFFCL;
-                }
-                if (cpuCount < 63) {
-                    cpuMask = (2 << cpuCount) - 1;
-                    cpuMask -= 3;
-                }
-                ProcessThread thread = Process.GetCurrentProcess ().Threads.Cast<ProcessThread> ().Where (t => t.Id == threadId).Single ();
-                thread.ProcessorAffinity = new IntPtr (cpuMask);
-            }
-
-            while (true) {
-                if (Device.Stopping)
-                    break;
-
-
-                if (ThreadNewData.WaitOne (1000)) {
-                    RaiseNewData (null);
-                }
-            }
-            Thread.EndThreadAffinity ();
-        }
-        [Obsolete]
-        void RaiseNewData (object context) {
-            WinUSBDevice.NewDataCallback cb = NewDataEvent;
-            if (cb != null) {
-                long dataMarker = -1;
-                while (dataMarker != TotalReceivedBytes) {
-                    dataMarker = TotalReceivedBytes;
-                    cb ();
-                }
-            }
-        }
+       
 
     }
 }
