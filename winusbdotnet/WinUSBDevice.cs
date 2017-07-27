@@ -143,7 +143,7 @@ namespace winusbdotnet {
                 }
 
                 Stopping = true;
-                
+
                 // Close handles which will cause background theads to stop working & exit.
                 if (WinusbHandle != IntPtr.Zero) {
                     NativeMethods.WinUsb_Free (WinusbHandle);
@@ -217,9 +217,10 @@ namespace winusbdotnet {
             throw new NotImplementedException ();
         }
 
-        public IObservable<int> BufferredReadPipeBytesReceived (byte pipeId) {
+
+        public IObservable<byte[]> BufferredReadPipeReceived (byte pipeId) {
             if (!bufferedPipes.ContainsKey (pipeId)) throw new Exception ("Pipe not enabled for buffered reads!");
-            return bufferedPipes[pipeId].PipeReadBytesReceived;
+            return bufferedPipes[pipeId].PipeReadReceived;
         }
 
         public IObservable<Exception> BufferredReadPipeExceptionOccured (byte pipeId) {
@@ -228,52 +229,8 @@ namespace winusbdotnet {
         }
 
 
-        BufferedPipeThread GetInterface (byte pipeId, bool packetInterface) {
-            if (!bufferedPipes.ContainsKey (pipeId)) {
-                throw new Exception ("Pipe not enabled for buffered reads!");
-            }
-            BufferedPipeThread th = bufferedPipes[pipeId];
-            if (!th.InterfaceBound) {
-                th.InterfaceBound = true;
-                th.PacketInterface = packetInterface;
-            } else {
-                if (th.PacketInterface != packetInterface) {
-                    string message = string.Format ("Pipe is already bound as a {0} interface - cannot bind to both Packet and Byte interfaces",
-                                                   packetInterface ? "Byte" : "Packet");
-                    throw new Exception (message);
-                }
-            }
-            return th;
-        }
-        public IPipeByteReader BufferedGetByteInterface (byte pipeId) {
-            return GetInterface (pipeId, false);
-        }
-
-        public IPipePacketReader BufferedGetPacketInterface (byte pipeId) {
-            return GetInterface (pipeId, true);
-        }
-
-
-
-        public byte[] BufferedReadPipe (byte pipeId, int byteCount) {
-            return BufferedGetByteInterface (pipeId).ReceiveBytes (byteCount);
-        }
-
-        public byte[] BufferedPeekPipe (byte pipeId, int byteCount) {
-            return BufferedGetByteInterface (pipeId).PeekBytes (byteCount);
-        }
-
-        public void BufferedSkipBytesPipe (byte pipeId, int byteCount) {
-            BufferedGetByteInterface (pipeId).SkipBytes (byteCount);
-        }
-
-        public byte[] BufferedReadExactPipe (byte pipeId, int byteCount) {
-            return BufferedGetByteInterface (pipeId).ReceiveExactBytes (byteCount);
-        }
-
-        public int BufferedByteCountPipe (byte pipeId) {
-            return BufferedGetByteInterface (pipeId).QueuedDataLength;
-        }
+       
+       
 
 
         public byte[] ReadExactPipe (byte pipeId, int byteCount) {
@@ -453,6 +410,13 @@ namespace winusbdotnet {
             get {
                 return Overlapped.WaitEvent.WaitOne (0);
             }
+        }
+
+        public byte[] GetBufferCopy () {
+            var c = new byte[CompletedSize];
+            int length = CompletedSize;
+            Marshal.Copy (PinnedBuffer, c, 0, CompletedSize);
+            return c;
         }
 
     }
