@@ -53,7 +53,7 @@ namespace test
                     }
                     finally
                     {
-                        d.Close();
+                        d.Dispose();
                     }
                 }
                 catch(Exception ex)
@@ -103,8 +103,8 @@ namespace test
                 if (returnData.Length != 0) { throw new Exception("Pipe didn't timeout, where did it get that data?"); }
                 Console.Out.WriteLine("Passed timeout test");
 
-                test.Close();
-                test.Close(); // checking that double close doesn't cause issues.
+                test.Dispose();
+                test.Dispose(); // checking that double close doesn't cause issues.
             }
 
             Console.Out.WriteLine("{0} device{1}", devices.Length, devices.Length==1?"":"s");
