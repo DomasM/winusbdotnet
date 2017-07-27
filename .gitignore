@@ -139,6 +139,7 @@ _Pvt_Extensions/
 ModelManifest.xml
 
 packages/
+.vs/
 
 # =========================
 # Windows detritus
