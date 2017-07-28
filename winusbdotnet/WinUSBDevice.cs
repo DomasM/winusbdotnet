@@ -141,20 +141,16 @@ namespace winusbdotnet {
                 if (disposing) {
                     // TODO: dispose managed state (managed objects).
                 }
-
+                foreach (var th in bufferedPipes.Values) {
+                    th.Dispose ();
+                }
                 Stopping = true;
 
-                // Close handles which will cause background theads to stop working & exit.
                 if (WinusbHandle != IntPtr.Zero) {
                     NativeMethods.WinUsb_Free (WinusbHandle);
                     WinusbHandle = IntPtr.Zero;
                 }
                 deviceHandle.Close ();
-
-                // Wait for pipe threads to quit
-                foreach (BufferedPipeThread th in bufferedPipes.Values) {
-                    while (!th.Stopped) Thread.Sleep (5);
-                }
 
                 disposedValue = true;
             }
@@ -206,31 +202,15 @@ namespace winusbdotnet {
         }
 
         Dictionary<byte, BufferedPipeThread> bufferedPipes = new Dictionary<byte, BufferedPipeThread> ();
+
+
         // Todo: Compute better value for bufferLength. Based on pipe transfer size.
-        public void EnableBufferedRead (byte pipeId, int bufferCount = 16, int bufferLength = 32) {
+        public BufferedPipeThread EnableBufferedRead (byte pipeId, int bufferCount = 16, int bufferLength = 32) {
             if (!bufferedPipes.ContainsKey (pipeId)) {
                 bufferedPipes.Add (pipeId, new BufferedPipeThread (this, pipeId, bufferCount, bufferLength));
             }
+            return bufferedPipes[pipeId];
         }
-
-        public void StopBufferedRead (byte pipeId) {
-            throw new NotImplementedException ();
-        }
-
-
-        public IObservable<byte[]> BufferredReadPipeReceived (byte pipeId) {
-            if (!bufferedPipes.ContainsKey (pipeId)) throw new Exception ("Pipe not enabled for buffered reads!");
-            return bufferedPipes[pipeId].PipeReadReceived;
-        }
-
-        public IObservable<Exception> BufferredReadPipeExceptionOccured (byte pipeId) {
-            if (!bufferedPipes.ContainsKey (pipeId)) throw new Exception ("Pipe not enabled for buffered reads!");
-            return bufferedPipes[pipeId].PipeReadException;
-        }
-
-
-       
-       
 
 
         public byte[] ReadExactPipe (byte pipeId, int byteCount) {
