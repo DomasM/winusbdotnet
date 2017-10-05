@@ -78,6 +78,8 @@ namespace winusbdotnet {
                     if (StoppInitiated == false) {
                         PipeReadExceptionSub.OnNext (ex);//could use BufferredReadPipeExceptionSub.OnError, but that would kill the observable
                         Thread.Sleep (15);
+                    } else {
+                        break;
                     }
                 }
             }
